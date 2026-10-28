@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Same Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+  <div id="client-app" class="max-w-4xl mx-auto p-6">
+    <header class="flex justify-between items-center pb-6 border-b border-slate-200">
+      <h1 class="text-2xl font-bold text-slate-900">Client Portal</h1>
+      <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-semibold">Client View</span>
+    </header>
+
+    <main class="mt-6 space-y-6">
+      <form id="submission-form" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <label class="block text-sm font-medium mb-2 text-slate-700">Submit Request to Admin</label>
+        <div class="flex gap-3">
+          <input id="input-title" type="text" placeholder="Enter details..." required class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm">Send</button>
+        </div>
+      </form>
+
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h2 class="text-lg font-semibold mb-4 text-slate-900">Current Status</h2>
+        <div id="client-data-container" class="space-y-3"></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // EXACT SAME firebaseConfig as admin.html
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+
+    // Client form submission
+    document.getElementById("submission-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("input-title");
+      if (!input.value.trim()) return;
+      await db.collection("shared_records").add({
+        title: input.value.trim(),
+        status: "Pending",
+        createdAt: new Date().toISOString()
+      });
+      input.value = "";
+    });
+
+    // Real-time synchronization
+    db.collection("shared_records").onSnapshot((snapshot) => {
+      const container = document.getElementById("client-data-container");
+      container.innerHTML = "";
+      snapshot.forEach((doc) => {
+        const item = doc.data();
+        const el = document.createElement("div");
+        el.className = "p-3 bg-slate-50 border border-slate-200 rounded-lg flex justify-between items-center";
+        el.innerHTML = `
+          <span class="font-medium text-slate-700">${item.title}</span>
+          <span class="px-2.5 py-0.5 text-xs rounded-full ${item.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${item.status}</span>
+        `;
+        container.appendChild(el);
+      });
+    });
+  </script>
+</body>
+</html>
